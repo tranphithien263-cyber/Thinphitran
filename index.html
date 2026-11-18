@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>THIENTRAN PATCHER & AI</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap');
+
+        :root {
+            --bg-color: #0a0a0c;
+            --panel-bg: rgba(20, 20, 25, 0.9);
+            --neon-cyan: #00ffcc;
+            --neon-pink: #ff0055;
+            --text-main: #ffffff;
+            --text-dim: #888888;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Share Tech Mono', monospace;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(0, 255, 204, 0.08), transparent 25%),
+                radial-gradient(circle at 85% 30%, rgba(255, 0, 85, 0.08), transparent 25%);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow-x: hidden;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px;
+            padding: 20px;
+            z-index: 10;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            animation: fadeInDown 0.8s ease;
+        }
+
+        .header h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 28px;
+            font-weight: 900;
+            background: linear-gradient(90deg, var(--neon-cyan), var(--neon-pink));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            margin-bottom: 15px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .tab-btn {
+            flex: 1;
+            background: none;
+            border: none;
+            color: var(--text-dim);
+            padding: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: bold;
+        }
+
+        .tab-btn.active {
+            color: var(--neon-cyan);
+            border-bottom: 2px solid var(--neon-cyan);
+            text-shadow: 0 0 10px rgba(0, 255, 204, 0.5);
+        }
+
+        .tab-content {
+            display: none;
+            background: var(--panel-bg);
+            border: 1px solid rgba(0, 255, 204, 0.3);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 0 20px rgba(0, 255, 204, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeInUp 0.4s ease;
+        }
+
+        /* Patch Tab Styles */
+        .drop-zone {
+            border: 2px dashed rgba(0, 255, 204, 0.5);
+            border-radius: 8px;
+            padding: 30px 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .drop-zone:hover, .drop-zone.dragover {
+            background: rgba(0, 255, 204, 0.05);
+            border-color: var(--neon-cyan);
+        }
+
+        .drop-zone input[type="file"] {
+            position: absolute;
+            width: 100%; height: 100%;
+            top: 0; left: 0; opacity: 0; cursor: pointer;
+        }
+
+        .file-info { font-size: 13px; color: var(--text-dim); display: none; word-break: break-all; margin-bottom: 15px; text-align: center;}
+
+        .btn {
+            width: 100%; background: transparent;
+            border: 1px solid var(--neon-cyan); color: var(--neon-cyan);
+            padding: 12px; font-size: 14px; border-radius: 6px;
+            cursor: pointer; transition: all 0.3s; text-transform: uppercase;
+            font-weight: bold; margin-bottom: 10px;
+        }
+
+        .btn:hover:not(:disabled) { background: rgba(0, 255, 204, 0.1); box-shadow: 0 0 15px rgba(0, 255, 204, 0.4); }
+        .btn-pink { border-color: var(--neon-pink); color: var(--neon-pink); }
+        .btn-pink:hover:not(:disabled) { background: rgba(255, 0, 85, 0.1); box-shadow: 0 0 15px rgba(255, 0, 85, 0.4); }
+        .btn:disabled { opacity: 0.4; cursor: not-allowed; border-color: var(--text-dim); color: var(--text-dim); box-shadow: none; background: transparent;}
+
+        .log-box {
+            margin-top: 15px; background: #000; border: 1px solid #333;
+            border-radius: 6px; padding: 10px; height: 100px;
+            overflow-y: auto; font-size: 11px; color: var(--neon-cyan); display: none;
+        }
+        .log-box .error { color: var(--neon-pink); }
+
+        /* AI Tab Styles */
+        .chat-box {
+            height: 300px;
+            overflow-y: auto;
+            background: #000;
+            border: 1px solid #333;
+            border-radius: 6px;
+            padding: 10px;
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .msg { padding: 8px 12px; border-radius: 8px; max-width: 85%; font-size: 13px; line-height: 1.4; }
+        .msg-ai { background: rgba(0, 255, 204, 0.1); color: var(--neon-cyan); align-self: flex-start; border-bottom-left-radius: 0; }
+        .msg-user { background: rgba(255, 255, 255, 0.1); color: #fff; align-self: flex-end; border-bottom-right-radius: 0; }
+
+        .chat-input-group { display: flex; gap: 10px; }
+        .chat-input {
+            flex: 1; background: #111; border: 1px solid #333; color: #fff;
+            padding: 10px; border-radius: 6px; outline: none; font-size: 13px;
+        }
+        .chat-input:focus { border-color: var(--neon-cyan); }
+        .btn-send { width: auto; padding: 10px 20px; margin-bottom: 0; }
+
+        @keyframes fadeInDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="header">
+            <h1>THIENTRAN PATCHER</h1>
+        </div>
+
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('patch', event)">PATCH FILE</button>
+            <button class="tab-btn" onclick="switchTab('ai', event)">THIENTRAN AI</button>
+        </div>
+
+        <!-- TAB PATCH -->
+        <div id="tab-patch" class="tab-content active">
+            <div class="drop-zone" id="dropZone">
+                <input type="file" id="fileInput" accept="*/*">
+                <div style="font-size: 14px;">Kéo thả <span style="color:var(--neon-cyan)">assetindexer</span> vào đây</div>
+            </div>
+
+            <div class="file-info" id="fileInfo">
+                📁 <span id="fileName"></span><br>
+                ⚖️ <span id="fileSize"></span>
+            </div>
+
+            <!-- CHỈ GIỮ LẠI NÚT PATCH AIM BỤNG -->
+            <button class="btn btn-pink" id="btnPatchAim" disabled>PATCH AIM BỤNG (SPINE)</button>
+            <button class="btn" id="btnDownload" disabled style="border-color: #fff; color: #fff;">TẢI XUỐNG FILE PATCH (~3D)</button>
+
+            <div class="log-box" id="logBox"></div>
+        </div>
+
+        <!-- TAB AI -->
+        <div id="tab-ai" class="tab-content">
+            <div class="chat-box" id="chatBox">
+                <div class="msg msg-ai">Chào bro, tao là THIENTRAN AI. Cần patch file gì thì qua tab bên kia, còn muốn hỏi gì thì cứ nói.</div>
+            </div>
+            <div class="chat-input-group">
+                <input type="text" id="aiInput" class="chat-input" placeholder="Nhập câu hỏi..." onkeypress="handleEnter(event)">
+                <button class="btn btn-send" onclick="sendMessage()">GỬI</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // LOGIC CHUYỂN TAB
+        // ==========================================
+        function switchTab(tabId, e) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            e.target.classList.add('active');
+            document.getElementById('tab-' + tabId).classList.add('active');
+        }
+
+        // ==========================================
+        // LOGIC PATCH FILE (BINARY PARSING)
+        // ==========================================
+        const fileInput = document.getElementById('fileInput');
+        const dropZone = document.getElementById('dropZone');
+        const fileInfo = document.getElementById('fileInfo');
+        const fileNameDisplay = document.getElementById('fileName');
+        const fileSizeDisplay = document.getElementById('fileSize');
+        const btnPatchAim = document.getElementById('btnPatchAim');
+        const btnDownload = document.getElementById('btnDownload');
+        const logBox = document.getElementById('logBox');
+
+        let originalFileBuffer = null;
+        let patchedFileBuffer = null;
+        let currentFileName = "";
+        let isPatched = false; // Cờ đánh dấu file đã patch chưa
+
+        function log(msg, isError = false) {
+            logBox.style.display = 'block';
+            const p = document.createElement('p');
+            p.innerText = `> ${msg}`;
+            if (isError) p.className = 'error';
+            logBox.appendChild(p);
+            logBox.scrollTop = logBox.scrollHeight;
+        }
+
+        // Xử lý kéo thả file
+        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
+        dropZone.addEventListener('dragleave', () => { dropZone.classList.remove('dragover'); });
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault(); dropZone.classList.remove('dragover');
+            if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+        });
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length) handleFile(e.target.files[0]);
+        });
+
+        function handleFile(file) {
+            currentFileName = file.name;
+            fileNameDisplay.innerText = file.name;
+            fileSizeDisplay.innerText = (file.size / 1024).toFixed(2) + " KB";
+            fileInfo.style.display = 'block';
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                originalFileBuffer = new Uint8Array(e.target.result);
+                logBox.innerHTML = '';
+                log("Đã load file thành công.");
+                log("Sẵn sàng để patch.");
+                
+                btnPatchAim.disabled = false;
+                btnDownload.disabled = true; // Khóa nút tải
+                patchedFileBuffer = null;
+                isPatched = false;
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        // Hàm nhị phân
+        function strToU8(str) {
+            let arr = new Uint8Array(str.length);
+            for (let i = 0; i < str.length; i++) arr[i] = str.charCodeAt(i);
+            return arr;
+        }
+
+        function findSequence(data, seq) {
+            for (let i = 0; i <= data.length - seq.length; i++) {
+                let found = true;
+                for (let j = 0; j < seq.length; j++) {
+                    if (data[i + j] !== seq[j]) { found = false; break; }
+                }
+                if (found) return i;
+            }
+            return -1;
+        }
+
+        function readFloat(data, offset) {
+            let buffer = new ArrayBuffer(4);
+            let view = new DataView(buffer);
+            for (let i = 0; i < 4; i++) view.setUint8(i, data[offset + i]);
+            return view.getFloat32(0, true); // LE
+        }
+
+        function writeFloat(data, offset, val) {
+            let buffer = new ArrayBuffer(4);
+            let view = new DataView(buffer);
+            view.setFloat32(0, val, true); // LE
+            for (let i = 0; i < 4; i++) data[offset + i] = view.getUint8(i);
+        }
+
+        function applyPatch(boneName, offsetY) {
+            if (!originalFileBuffer) return;
+            
+            log(`Đang tìm xương: ${boneName}...`);
+            let dataCopy = new Uint8Array(originalFileBuffer);
+            let boneBytes = strToU8(boneName);
+            let boneOffset = findSequence(dataCopy, boneBytes);
+
+            if (boneOffset === -1) {
+                log(`LỖI: Không tìm thấy xương ${boneName} trong file!`, true);
+                return;
+            }
+
+            log(`Thấy ${boneName} tại offset: 0x${boneOffset.toString(16).toUpperCase()}`);
+
+            // Cấu trúc UMA: Tên + 8 hash + 4 parent + 12 position (X,Y,Z)
+            let posOffset = boneOffset + boneBytes.length + 8 + 4;
+
+            try {
+                let x = readFloat(dataCopy, posOffset);
+                let y = readFloat(dataCopy, posOffset + 4);
+                let z = readFloat(dataCopy, posOffset + 8);
+
+                log(`Tọa độ gốc: Y=${y.toFixed(3)}`);
+                let newY = y + offsetY;
+                writeFloat(dataCopy, posOffset + 4, newY);
+                log(`Tọa độ mới: Y=${newY.toFixed(3)}`);
+                log("Patch dữ liệu THÀNH CÔNG!");
+                
+                patchedFileBuffer = dataCopy;
+                isPatched = true;
+                btnDownload.disabled = false; // Mở khóa nút tải
+                fileInfo.innerHTML = "✅ File đã được PATCH (Sẵn sàng tải)";
+
+            } catch (error) {
+                log("Lỗi đọc/ghi bộ nhớ: " + error, true);
+            }
+        }
+
+        // Chỉ patch Aim Bụng
+        btnPatchAim.addEventListener('click', () => applyPatch("bone_Spine1", -0.2));
+
+        btnDownload.addEventListener('click', () => {
+            if (!patchedFileBuffer || !isPatched) return; // Bảo vệ lớp 2
+
+            // Xóa toàn bộ đuôi file cũ (bao gồm .txt)
+            let baseName = currentFileName;
+            if (baseName.includes(".")) {
+                baseName = baseName.split(".")[0]; 
+            }
+            
+            // Ép tên file chuẩn ~3D
+            const finalFileName = baseName + ".JmRaFcMzOTGGfaDFykNaobjaaSw~3D";
+
+            const blob = new Blob([patchedFileBuffer], { type: 'application/octet-stream' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = finalFileName;
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            log(`Đã tải xuống: ${finalFileName}`);
+        });
+
+
+        // ==========================================
+        // LOGIC THIENTRAN AI (MOCKUP)
+        // ==========================================
+        const chatBox = document.getElementById('chatBox');
+        const aiInput = document.getElementById('aiInput');
+
+        function handleEnter(e) {
+            if (e.key === 'Enter') sendMessage();
+        }
+
+        function sendMessage() {
+            const text = aiInput.value.trim();
+            if (!text) return;
+
+            appendMessage(text, 'user');
+            aiInput.value = '';
+
+            setTimeout(() => {
+                let reply = getAIReply(text);
+                appendMessage(reply, 'ai');
+            }, 800);
+        }
+
+        function appendMessage(text, sender) {
+            const div = document.createElement('div');
+            div.className = `msg msg-${sender}`;
+            div.innerText = text;
+            chatBox.appendChild(div);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        function getAIReply(msg) {
+            msg = msg.toLowerCase();
+            
+            if (msg.includes("chào") || msg.includes("hello") || msg.includes("hi")) {
+                return "Chào bro. Tao là THIENTRAN. Cần patch file thì nói nhanh.";
+            }
+            if (msg.includes("patch") || msg.includes("aim") || msg.includes("bụng")) {
+                return "Patch aim bụng thì mày kéo thả file assetindexer qua tab PATCH FILE, bấm nút Patch Aim Bụng là xong. Xong nó mới cho tải file đã sửa.";
+            }
+            if (msg.includes("lỗi") || msg.includes("sao") || msg.includes("ko đc")) {
+                return "Lỗi thì xem log ở tab patch. Thường là do file gốc hỏng hoặc sai offset.";
+            }
+            if (msg.includes("hex") || msg.includes("byte")) {
+                return "Hex patch cho UMA bone: Tên + 8 byte hash + 4 byte parent + 12 byte pos. Tool tự lo phần đó.";
+            }
+            if (msg.includes("tải") || msg.includes("download")) {
+                return "File tải về phải có tác dụng thật (đã bị patch) thì nút Tải mới sáng lên. Đuôi file tao ép thành ~3D.";
+            }
+            
+            const defaults = [
+                "Câu này khó quá, hỏi về patch file, hex, hay code thì tao biết.",
+                "Nói rõ ra xem nào. Mày muốn tao giúp cái gì?",
+                "Vô thẳng vấn đề đi.",
+                "Hỏi về assetindexer, bone, hay cách patch thì tao tiếp, còn lại thì thôi."
+            ];
+            return defaults[Math.floor(Math.random() * defaults.length)];
+        }
+    </script>
+</body>
+</html>
